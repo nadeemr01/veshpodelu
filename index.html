@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ВещьПоДелу</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Идея раскладки: яркая зелёная шапка, слева анкета, справа жёлтый «сортировочный ярлык» с вердиктом; ниже — организации, прошедшие и не прошедшие проверку правил. */
+:root{
+  --paper:#f3fbf6;
+  --card:#ffffff;
+  --tint:#e2f7eb;
+  --ink:#0d2b22;
+  --muted:#4b6a5f;
+  --line:#c9e8d8;
+  --accent:#00874f;
+  --head-bg:#00874f;
+  --head-ink:#ffffff;
+  --tag:#ffd400;
+  --tag-ink:#0d2b22;
+  --yes:#06703c; --yes-bg:#d6f5e4;
+  --maybe:#9a4f00; --maybe-bg:#ffebc7;
+  --no:#c42828; --no-bg:#ffe0e0;
+  --focus:#1f5fd6;
+  --display:"Unbounded", "Arial Black", system-ui, sans-serif;
+  --body:"Golos Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b1814; --card:#13241e; --tint:#102b21; --ink:#eaf6f0; --muted:#9bb8ad; --line:#24403a;
+    --accent:#3ddc8c; --head-bg:#0f7a4c; --head-ink:#ffffff;
+    --tag:#ffd400; --tag-ink:#0d2b22;
+    --yes:#4fe39a; --yes-bg:#163a2a; --maybe:#ffb547; --maybe-bg:#3d2c0c; --no:#ff7b7b; --no-bg:#3d1717;
+    --focus:#8fb4ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b1814; --card:#13241e; --tint:#102b21; --ink:#eaf6f0; --muted:#9bb8ad; --line:#24403a;
+  --accent:#3ddc8c; --head-bg:#0f7a4c; --head-ink:#ffffff;
+  --tag:#ffd400; --tag-ink:#0d2b22;
+  --yes:#4fe39a; --yes-bg:#163a2a; --maybe:#ffb547; --maybe-bg:#3d2c0c; --no:#ff7b7b; --no-bg:#3d1717;
+  --focus:#8fb4ff; color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;letter-spacing:-.01em}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+
+/* Шапка */
+header.top{background:var(--head-bg);color:var(--head-ink)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;padding-bottom:14px;flex-wrap:wrap}
+.logo{font-family:var(--display);font-weight:700;font-size:20px;text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo i{display:inline-block;width:22px;height:14px;background:var(--tag);border-radius:3px 7px 7px 3px;position:relative;transform:rotate(-8deg)}
+.logo i::before{content:"";position:absolute;left:4px;top:4px;width:5px;height:5px;border-radius:50%;background:var(--head-bg)}
+nav.links{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--head-ink);font-weight:500}
+nav.links a{text-decoration:none}
+nav.links a:hover{text-decoration:underline}
+
+.intro{padding-top:34px;padding-bottom:22px;display:grid;gap:10px}
+.panel[hidden]{display:none}
+.intro h1{font-size:clamp(26px,4.4vw,44px);line-height:1.1;max-width:20ch}
+.intro h1 mark{background:linear-gradient(transparent 56%, var(--tag) 56%);color:inherit;padding:0 .06em}
+.intro p{margin:0;color:var(--muted);max-width:62ch;font-size:17px}
+
+/* Основная сетка */
+.main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:28px;align-items:start;padding-bottom:36px}
+@media (max-width:880px){.main{grid-template-columns:1fr}}
+
+form.quiz{background:var(--card);border:1px solid var(--line);border-top:6px solid var(--accent);border-radius:16px;padding:22px;display:grid;gap:22px}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:10px;min-width:0}
+legend{padding:0;margin-bottom:10px;display:flex;align-items:baseline;gap:10px;font-weight:600;font-size:16px}
+legend .mono{color:var(--accent);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:block;padding:9px 14px;border:1.5px solid var(--line);border-radius:999px;font-size:15px;line-height:1.25;background:var(--paper);cursor:pointer;transition:border-color .15s, background .15s}
+.chip input:hover + span{border-color:var(--accent)}
+.chip input:checked + span{background:var(--tag);color:var(--tag-ink);border-color:var(--tag-ink);font-weight:500}
+.chip input:focus-visible + span{outline:3px solid var(--focus);outline-offset:2px}
+.chips.stack{flex-direction:column}
+.chips.stack .chip span{border-radius:12px;display:grid;gap:2px}
+.chips.stack .chip small{font-size:13px;color:var(--muted)}
+.chips.stack .chip input:checked + span small{color:inherit;opacity:.8}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:520px){.row2{grid-template-columns:1fr}}
+select{width:100%;font:inherit;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink)}
+.hint{font-size:13px;color:var(--muted);margin:0}
+
+/* Ярлык-вердикт */
+.side{position:sticky;top:16px;display:grid;gap:16px}
+@media (max-width:880px){.side{position:static}}
+.tag{background:var(--tag);color:var(--tag-ink);border-radius:10px 26px 26px 10px;padding:22px 24px 22px 54px;position:relative;transform:rotate(-1.2deg);box-shadow:0 1px 0 rgba(0,0,0,.08), 0 14px 30px -18px rgba(0,0,0,.45)}
+.tag::before{content:"";position:absolute;left:20px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:var(--paper);box-shadow:inset 0 0 0 3px rgba(0,0,0,.12)}
+.tag::after{content:"";position:absolute;left:40px;top:14px;bottom:14px;border-left:2px dashed rgba(0,0,0,.18)}
+.tag .code{font-family:var(--mono);font-size:12px;letter-spacing:.08em;opacity:.75}
+.tag h2{font-size:clamp(22px,3vw,30px);line-height:1.12;margin:6px 0 10px}
+.tag p{margin:0;font-size:15.5px;max-width:52ch}
+.tag .tally{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:12.5px}
+.tag .tally b{font-weight:500}
+.tag.stamp{animation:stamp .35s ease-out}
+@keyframes stamp{0%{transform:rotate(-3deg) scale(1.03)}100%{transform:rotate(-1.2deg) scale(1)}}
+@media (prefers-reduced-motion: reduce){.tag.stamp{animation:none}}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;gap:10px}
+.panel h3{font-size:15px;color:var(--accent)}
+.panel ol,.panel ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.note{border-left:4px solid var(--tag);padding:2px 0 2px 12px;font-size:15px}
+
+/* Организации */
+section.block{padding:30px 0;border-top:1px solid var(--line)}
+#spravochnik{background:var(--tint)}
+section.block > .wrap > h2{font-size:clamp(20px,2.6vw,26px);margin-bottom:6px}
+.sub{color:var(--muted);margin:0 0 18px;max-width:70ch}
+.orgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.org{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:8px;align-content:start;border-top:5px solid var(--line)}
+.org.yes{border-top-color:var(--yes)}
+.org.maybe{border-top-color:var(--maybe)}
+.org.no{border-top-color:var(--no)}
+.org header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.org h3{font-family:var(--body);font-weight:600;font-size:17px;letter-spacing:0}
+.kind{font-size:12.5px;color:var(--muted)}
+.pill{flex:none;font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.pill.yes{background:var(--yes-bg);color:var(--yes)}
+.pill.maybe{background:var(--maybe-bg);color:var(--maybe)}
+.pill.no{background:var(--no-bg);color:var(--no)}
+.org p{margin:0;font-size:15px}
+.org .where{font-size:14px;color:var(--muted)}
+.org a.src{font-size:14px;font-weight:500}
+details.rejected{margin-top:16px}
+details.rejected summary{cursor:pointer;font-weight:600;padding:10px 0}
+details.rejected .orgs{margin-top:8px}
+.empty{color:var(--muted);font-size:15px}
+
+/* Справочник */
+.dir{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.dir article{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.dir h3{font-family:var(--body);font-weight:600;font-size:17px;letter-spacing:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px}
+@media (max-width:420px){.cols{grid-template-columns:1fr}}
+.cols ul{margin:4px 0 0;padding-left:18px;display:grid;gap:3px}
+.cols .mono{font-size:11px}
+.cols .ok{color:var(--yes)} .cols .ko{color:var(--no)}
+
+/* О проекте */
+.about{display:grid;grid-template-columns:1.1fr .9fr;gap:28px}
+@media (max-width:820px){.about{grid-template-columns:1fr}}
+.team{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.team li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.team b{display:block;font-size:16px}
+.team span{font-size:14px;color:var(--muted)}
+.steps{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.steps li{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:baseline;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.steps .mono{color:var(--muted)}
+.steps li.now{border-color:var(--accent);border-width:2px;background:var(--tint)}
+footer{padding:26px 0 40px;background:var(--head-bg);color:var(--head-ink);font-size:14px}
+footer p{margin:0 0 6px;max-width:80ch}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#anketa"><i aria-hidden="true"></i>ВещьПоДелу</a>
+    <nav class="links" aria-label="Разделы">
+      <a href="#anketa">Анкета</a>
+      <a href="#spravochnik">Организации и правила</a>
+      <a href="#o-proekte">О проекте</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap intro" id="anketa">
+    <span class="mono" style="color:var(--accent);font-weight:500">Москва · одежда, книги, игрушки</span>
+    <h1>Куда пристроить вещь, чтобы её <mark>точно приняли</mark></h1>
+    <p>Расскажите о вещи в пару кликов. Мы сверим вашу вещь с правилами московских фондов и пунктов приёма и подскажем, что лучше: передать на благотворительность, отремонтировать, отдать человеку или сдать на переработку.</p>
+  </div>
+
+  <div class="wrap main">
+    <form class="quiz" id="quiz" novalidate>
+      <fieldset>
+        <legend><span class="mono">01</span> Что за вещь?</legend>
+        <div class="chips" id="cat"></div>
+      </fieldset>
+      <fieldset>
+        <legend><span class="mono">02</span> Уточните тип</legend>
+        <div class="chips" id="sub"></div>
+      </fieldset>
+      <fieldset>
+        <legend><span class="mono">03</span> В каком она состоянии?</legend>
+        <div class="chips stack" id="cond"></div>
+      </fieldset>
+      <div class="row2">
+        <fieldset>
+          <legend><span class="mono">04</span> Сколько вещей?</legend>
+          <div class="chips" id="amount"></div>
+        </fieldset>
+        <fieldset>
+          <legend><span class="mono">05</span> Город</legend>
+          <label for="city" class="hint" style="margin-bottom:4px">Пока работаем по Москве</label>
+          <select id="city" name="city">
+            <option value="msk" selected>Москва</option>
+            <option disabled>Санкт-Петербург — скоро</option>
+            <option disabled>Другие города — скоро</option>
+          </select>
+        </fieldset>
+      </div>
+    </form>
+
+    <aside class="side" aria-live="polite">
+      <div class="tag" id="verdict">
+        <div class="code" id="v-code">МСК</div>
+        <h2 id="v-title">—</h2>
+        <p id="v-text"></p>
+        <div class="tally" id="v-tally"></div>
+      </div>
+      <div class="panel" id="prep">
+        <h3>Как подготовить</h3>
+        <ul id="prep-list"></ul>
+      </div>
+      <div class="panel" id="extra" hidden></div>
+    </aside>
+  </div>
+
+  <section class="block" id="podhodyat">
+    <div class="wrap">
+      <h2>Куда можно отнести</h2>
+      <p class="sub" id="match-sub">Организации, чьи правила подходят под вашу вещь. «Уточните» значит, что на сайте организации нет точного ответа или правило зависит от пункта.</p>
+      <div class="orgs" id="orgs-ok"></div>
+      <details class="rejected" id="rej">
+        <summary id="rej-sum">Куда не стоит нести и почему</summary>
+        <div class="orgs" id="orgs-no"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block" id="spravochnik">
+    <div class="wrap">
+      <h2>Организации и их правила</h2>
+      <p class="sub">Всё, на чём основаны рекомендации. Правила взяты с сайтов организаций и городских порталов и проверены 18 ноября 2026 года. Перед поездкой загляните на сайт: адреса и списки нужд меняются.</p>
+      <div class="dir" id="dir"></div>
+    </div>
+  </section>
+
+  <section class="block" id="o-proekte">
+    <div class="wrap about">
+      <div>
+        <h2 style="font-size:clamp(20px,2.6vw,26px);margin-bottom:8px">О проекте</h2>
+        <p class="sub">«ВещьПоДелу» помогает не выбрасывать пригодные вещи и сокращает число неподходящих пожертвований, которые фондам приходится сортировать и вывозить за свой счёт. Проект студентов РАНХиГС в рамках программы «Обучение служением», 2026.</p>
+        <ul class="team" id="team"></ul>
+      </div>
+      <div>
+        <h2 style="font-size:clamp(18px,2.2vw,22px);margin-bottom:12px">Что дальше</h2>
+        <ol class="steps">
+          <li class="now"><span class="mono">Версия 1</span><span>Москва, три категории вещей, 13 организаций и сервисов с правилами приёма.</span></li>
+          <li><span class="mono">Версия 2</span><span>Поиск организаций и пунктов по городу и району.</span></li>
+          <li><span class="mono">Версия 2</span><span>Актуальные запросы фондов: что нужно прямо сейчас.</span></li>
+          <li><span class="mono">Версия 3</span><span>Распознавание вещи по фотографии.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Правила проверены по сайтам организаций 18 ноября 2026 года. Сервис подсказывает, но не гарантирует приём: окончательное решение всегда за организацией.</p>
+    <p>Нашли устаревшее правило? Напишите команде проекта, и мы обновим базу.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- Справочники анкеты ---------- */
+const CATS = [
+  {id:"clothes", label:"Одежда и обувь", code:"ОДЖ"},
+  {id:"books",   label:"Книги",          code:"КНГ"},
+  {id:"toys",    label:"Игрушки",        code:"ИГР"}
+];
+const SUBS = {
+  clothes:[
+    {id:"adult", label:"Взрослая одежда"},
+    {id:"kids", label:"Детская одежда"},
+    {id:"outer", label:"Куртки и пуховики"},
+    {id:"shoes", label:"Обувь"},
+    {id:"underwear", label:"Бельё, носки, колготки"},
+    {id:"textile", label:"Постельное, полотенца"}
+  ],
+  books:[
+    {id:"fiction", label:"Художественные и нон-фикшн"},
+    {id:"kidsbooks", label:"Детские книги"},
+    {id:"textbooks", label:"Учебники и справочники"},
+    {id:"magazines", label:"Журналы"}
+  ],
+  toys:[
+    {id:"plastic", label:"Пластиковые и развивающие"},
+    {id:"soft", label:"Мягкие игрушки"},
+    {id:"sets", label:"Конструкторы, пазлы, настолки"},
+    {id:"electronic", label:"На батарейках"}
+  ]
+};
+const CONDS = [
+  {id:"new",     label:"Новая",            hint:"С биркой или в заводской упаковке", code:"НОВ"},
+  {id:"good",    label:"Хорошее",          hint:"Чистая, целая, без пятен и поломок", code:"ХОР"},
+  {id:"fixable", label:"Есть мелкий дефект", hint:"Сломана молния, оторвана пуговица, отклеилась подошва, порвана обложка, не хватает деталей", code:"ДЕФ"},
+  {id:"worn",    label:"Изношена",         hint:"Дырки, пятна, растянута или выцвела, но постирана", code:"ИЗН"},
+  {id:"ruined",  label:"Грязная или испорчена", hint:"Не отстирывается, плесень, сильный запах", code:"ИСП"}
+];
+const AMOUNTS = [
+  {id:"few",  label:"1–5 вещей"},
+  {id:"bag",  label:"Пакет-два"},
+  {id:"lots", label:"4+ больших сумки"}
+];
+
+const goodish = c => c === "new" || c === "good";
+
+/* ---------- База организаций (Москва) ---------- */
+const ORGS = [
+{
+  id:"vtoroe", name:"«Второе дыхание»", kind:"Благотворительный фонд",
+  where:"Более 100 контейнеров по Москве и боксы в отделениях «Почты России», адреса на карте фонда. Вывоз из дома платный, от 6 кг одежды.",
+  url:"https://vtoroe.ru/modno-sdat/chto-mozhno-sdavat/", urlLabel:"vtoroe.ru",
+  accept:["Чистая одежда в любом состоянии, даже с дырками","Обувь, сумки, аксессуары в рабочем состоянии","Постельное бельё, лёгкий текстиль","Новое бельё с биркой"],
+  decline:["Грязное и сильно пахнущее","Б/у бельё, носки, колготки, купальники","Ковры, подушки, одеяла","Сломанная обувь","Игрушки, книги, посуда (только по договорённости)"],
+  check(q){
+    if (q.cat !== "clothes") return ["no","Книги и игрушки фонд постоянно не принимает: только по договорённости через hello@vtoroe.ru."];
+    if (q.cond === "ruined") return ["no","Сильно загрязнённые и пахнущие вещи не принимают: всё должно быть постирано."];
+    switch(q.sub){
+      case "underwear": return q.cond === "new" ? ["yes","Новое бельё с биркой принимают, это исключение из правил."] : ["no","Б/у нижнее бельё, носки, колготки и купальники не принимают."];
+      case "shoes":
+        if (goodish(q.cond)) return ["yes","Обувь берут в хорошем или рабочем состоянии. Свяжите шнурки, чтобы пара не потерялась."];
+        if (q.cond === "fixable") return ["maybe","Обувь берут только в рабочем состоянии: если дефект мешает носить, сначала почините."];
+        return ["no","Сломанную и испорченную обувь не принимают."];
+      case "outer":
+        if (goodish(q.cond)) return ["yes","Хорошие вещи фонд передаёт нуждающимся или в свои благотворительные магазины."];
+        if (q.cond === "fixable") return ["maybe","Вещи с наполнителем и кожей берут только в хорошем состоянии."];
+        return ["no","Изношенные вещи с наполнителем переработать нельзя, они попадут на полигон. Лучше предложите их приюту для животных."];
+      case "textile":
+        if (q.cond === "worn") return ["maybe","Постельное бельё берут почти любое, кроме ветхого, которое рассыпается. Подушки, одеяла и ковры не берут."];
+        return ["yes","Постельное бельё и лёгкий домашний текстиль принимают. Подушки, одеяла и ковры — нет."];
+      default:
+        if (goodish(q.cond)) return ["yes","Вещи в хорошем состоянии фонд передаёт нуждающимся семьям, пенсионерам и людям с инвалидностью."];
+        return ["yes","Чистую одежду берут в любом состоянии, даже с дырками, если повреждения не на большей части ткани. Она уйдёт в переработку."];
+    }
+  }
+},
+{
+  id:"lavka", name:"«Лавка радостей»", kind:"Благотворительный фонд",
+  where:"Магазины фонда ежедневно с 11:00 до 21:00, без договорённости. Склад: ул. Складочная, 1, стр. 7. Офис: ул. Верхние Поля, 11к1с2.",
+  url:"https://lavkafond.ru/how-to-help/sdat-veshhi/", urlLabel:"lavkafond.ru",
+  accept:["Чистая одежда и обувь в хорошем состоянии","Вещи без дыр, пятен и сломанных молний"],
+  decline:["Мягкие детские игрушки","Книги","Мебель","Б/у нижнее бельё"],
+  check(q){
+    if (q.cat === "books") return ["no","Книги фонд не принимает."];
+    if (q.cat === "toys"){
+      if (q.sub === "soft") return ["no","Мягкие детские игрушки не принимают."];
+      if (!goodish(q.cond)) return ["no","Нужны вещи в хорошем состоянии."];
+      return ["maybe","Про другие игрушки на сайте не сказано, уточните в магазине фонда."];
+    }
+    if (q.sub === "underwear") return q.cond === "new" ? ["maybe","Не берут б/у бельё; про новое на сайте не сказано, уточните."] : ["no","Б/у нижнее бельё не принимают."];
+    if (!goodish(q.cond)) return ["no","Берут только чистые вещи без дыр, пятен и сломанных молний."];
+    if (q.sub === "textile") return ["maybe","На сайте речь об одежде и обуви, про текстиль уточните."];
+    return ["yes","Принимают чистые вещи в хорошем состоянии. Хорошие вещи продают в лавках, выручка идёт на помощь людям."];
+  }
+},
+{
+  id:"dobrove", name:"«Добрые вещи»", kind:"Социальный проект (ИП)",
+  where:"Пункты ежедневно 10:00–22:00: ул. Обручева, 34/63с1; ул. Адмирала Макарова, 14; ул. Декабристов, 28к1; ул. Маршала Василевского, 15 (до 21:00); ул. Татьяны Макаровой, 3. Бесплатный вывоз. Тел. +7 (495) 374-62-63.",
+  url:"https://dobrove.ru/", urlLabel:"dobrove.ru",
+  accept:["Взрослая и детская одежда, обувь, сумки","Текстиль, подушки, одеяла","Детские игрушки","Спортинвентарь"],
+  decline:["Книги, посуда, техника, электроника","Мебель, ковры, матрасы, кроватки","Канцтовары","Вещи с грубыми дефектами"],
+  check(q){
+    if (q.cat === "books") return ["no","Книги не принимают."];
+    if (q.cond === "ruined" || q.cond === "worn") return ["no","Нужны чистые вещи, пригодные к использованию, без грубых дефектов."];
+    if (q.cond === "fixable") return ["maybe","Берут вещи без грубых дефектов. С мелким изъяном уточните по телефону, а лучше сначала почините."];
+    if (q.cat === "toys"){
+      if (q.sub === "soft") return ["maybe","Детские игрушки принимают, про мягкие отдельно не сказано. Уточните по телефону."];
+      if (q.sub === "electronic") return ["maybe","Электронику проект не берёт, про игрушки на батарейках уточните."];
+      return ["yes","Детские игрушки принимают, если они чистые и пригодны к использованию."];
+    }
+    if (q.sub === "underwear") return ["maybe","Бельё в списке отдельно не упомянуто, уточните по телефону."];
+    return ["yes","Принимают взрослую и детскую одежду, обувь, текстиль, подушки и одеяла. Часть вещей проект продаёт."];
+  }
+},
+{
+  id:"nochlezhka", name:"«Ночлежка» в Москве", kind:"Благотворительная организация",
+  where:"Бумажный проезд, 2/2, стр. 6, ежедневно днём и вечером. Список нужд и часы публикуют в соцсетях.",
+  url:"https://homeless.ru/", urlLabel:"homeless.ru",
+  accept:["Мужская одежда: джинсы, свитеры, куртки, толстовки","Сезонная обувь, особенно 41–44","Чистые вещи с исправными застёжками"],
+  decline:["Детские вещи","Обувь на каблуках и непарная","Книги и игрушки"],
+  check(q){
+    if (q.cat !== "clothes") return ["no","«Ночлежка» помогает бездомным взрослым: книги и игрушки здесь не нужны."];
+    if (q.sub === "kids") return ["no","Детские вещи не нужны: организация помогает взрослым."];
+    if (q.cond === "ruined") return ["no","Вещи должны быть чистыми."];
+    if (q.sub === "underwear") return q.cond === "new" ? ["maybe","Новые носки и бельё иногда есть в списке нужд, проверьте актуальный пост."] : ["no","Б/у бельё и носки для выдачи не подходят."];
+    if (q.sub === "textile") return ["maybe","Текстиля нет в постоянном списке нужд, проверьте актуальный пост."];
+    if (q.sub === "shoes"){
+      if (goodish(q.cond)) return ["yes","Берут любую обувь, если пара целая и без каблуков. Особенно нужны мужские размеры 41–44."];
+      return ["maybe","Нужна целая пара без каблуков: изношенная, но крепкая обувь может подойти."];
+    }
+    if (q.cond === "fixable") return ["maybe","Нужны вещи с исправными застёжками: молнию лучше сначала заменить."];
+    if (q.cond === "worn") return ["maybe","Вещи не обязаны быть идеальными, главное — чтобы ещё прослужили. Сильно изношенное не подойдёт."];
+    return ["yes","Сейчас особенно нужна мужская одежда: джинсы, свитеры, куртки, толстовки. Женских вещей обычно хватает."];
+  }
+},
+{
+  id:"prosto", name:"«Сдать вещи просто»", kind:"Социальный проект АНО «Экосистема»",
+  where:"Контейнеры в торговых и бизнес-центрах, магазинах «ВкусВилл» и «Дикси», адреса на карте сайта. Вывоз «Экотакси» от 500 ₽.",
+  url:"https://xn--80aeegp3cj2dya.xn--p1ai/", urlLabel:"сдатьвещи.рф",
+  accept:["Чистая одежда в любом состоянии","Обувь в хорошем состоянии","Игрушки, включая мягкие; наборы — в полном комплекте","Постельное, шторы, скатерти в любом состоянии"],
+  decline:["Грязные и плохо пахнущие вещи","Нижнее бельё, носки, колготки","Мебель и крупногабаритные вещи"],
+  check(q){
+    if (q.cat === "books") return ["no","Книг нет в списке того, что принимает проект."];
+    if (q.cond === "ruined") return ["no","Грязные и плохо пахнущие вещи не принимают."];
+    if (q.cat === "clothes"){
+      if (q.sub === "underwear") return ["no","Нижнее бельё, носки и колготки не принимают."];
+      if (q.sub === "shoes") return goodish(q.cond) ? ["yes","Обувь берут в хорошем состоянии."] : q.cond === "fixable" ? ["maybe","Обувь берут только в хорошем состоянии: сначала почините."] : ["no","Обувь берут только в хорошем состоянии."];
+      if (goodish(q.cond)) return ["yes","Хорошие вещи уйдут на благотворительность или в продажу."];
+      return ["yes","Одежду и домашний текстиль берут чистыми в любом состоянии: непригодное уйдёт в переработку."];
+    }
+    if (q.sub === "sets" && !goodish(q.cond)) return ["no","Конструкторы и пазлы берут только в полном комплекте."];
+    if (q.sub === "electronic") return ["maybe","Игрушек на батарейках нет в списке, уточните."];
+    if (goodish(q.cond)) return ["yes","Берут мягкие, пластиковые и развивающие игрушки, конструкторы и пазлы в полном комплекте."];
+    return ["maybe","Про потрёпанные игрушки на сайте не сказано, уточните."];
+  }
+},
+{
+  id:"krok", name:"«Крок и Зябра»", kind:"Социальный проект для детей",
+  where:"Контейнеры в некоторых магазинах «ВкусВилл» в Москве. Вещи уходят семьям в сёлах в пределах 1500 км от Москвы.",
+  url:"https://vkusvill.ru/media/journal/krok-i-zyabra-i-vkusvill-eshchye-bolshe-punktov-sbora-detskoy-odezhdy.html", urlLabel:"vkusvill.ru",
+  accept:["Детская одежда и обувь","Игрушки","Детские книги","Аксессуары","Всё — в хорошем состоянии"],
+  decline:["Взрослые вещи","Вещи в плохом состоянии"],
+  check(q){
+    if (q.cat === "clothes"){
+      if (q.sub === "adult" || q.sub === "textile" || q.sub === "underwear") return ["no","Проект собирает вещи для детей."];
+      if (!goodish(q.cond)) return ["no","Нужны вещи в хорошем состоянии."];
+      if (q.sub === "outer" || q.sub === "shoes") return ["maybe","Подойдут только детские куртки и обувь."];
+      return ["yes","Детскую одежду в хорошем состоянии передадут семьям в сёлах."];
+    }
+    if (!goodish(q.cond)) return ["no","Нужны вещи в хорошем состоянии."];
+    if (q.cat === "books") return q.sub === "kidsbooks" ? ["yes","Детские книги в хорошем состоянии принимают вместе с одеждой и игрушками."] : ["maybe","Проект для детей и родителей: взрослые книги уточните."];
+    return ["yes","Игрушки в хорошем состоянии передадут детям из семей в сёлах."];
+  }
+},
+{
+  id:"rebooks", name:"Re:Books", kind:"Оператор сбора книг",
+  where:"Контейнеры в магазинах Москвы, карта на сайте. Склад: ул. Твардовского, 8к3 (Строгино). Есть вывоз из дома и отправка через СДЭК.",
+  url:"https://re-books.ru/where_to_share", urlLabel:"re-books.ru",
+  accept:["Прочитанные книги","Потрёпанные книги — в переработку"],
+  decline:["Про журналы и учебники на сайте не сказано"],
+  check(q){
+    if (q.cat !== "books") return ["no","Принимает только книги."];
+    if (q.cond === "ruined") return ["no","Книги с плесенью и сильным запахом не сдавайте: они портят остальные в контейнере."];
+    if (q.sub === "magazines") return ["maybe","Сайт говорит о книгах, про журналы уточните."];
+    if (q.sub === "textbooks") return ["maybe","Про учебники на сайте не сказано, уточните."];
+    if (goodish(q.cond)) return ["yes","Книги сортируют, обрабатывают и отправляют в сельские библиотеки; часть продают, чтобы оплатить доставку."];
+    return ["yes","Хорошие книги уедут в сельские библиотеки, потрёпанные уйдут в переработку как макулатура."];
+  }
+},
+{
+  id:"mosvyvoz", name:"«Вывоз ненужных вещей» на mos.ru", kind:"Городской сервис",
+  where:"Заявка на mos.ru или в приложении «Моя Москва». Бесплатно для одежды и книг, вывоз от 4 больших сумок или 8 обычных пакетов.",
+  url:"https://www.mos.ru/services/vyvoz/", urlLabel:"mos.ru",
+  accept:["Одежда, обувь, головные уборы, галантерея","Книги, журналы, открытки","Всё чистое, целое, без запахов"],
+  decline:["Меньше 4 больших сумок","Рваные и повреждённые вещи","Игрушки"],
+  check(q){
+    if (q.cat === "toys") return ["no","Сервис бесплатно вывозит одежду и книги, игрушек в списке нет."];
+    if (q.sub === "underwear" || q.sub === "textile") return ["no","В списке: одежда, обувь, головные уборы и галантерея."];
+    if (!goodish(q.cond)) return ["no","Вещи должны быть чистыми, не рваными, без повреждений и посторонних запахов."];
+    if (q.amount !== "lots") return ["maybe","Вывозят от 4 больших сумок или коробок (или 8 обычных пакетов). Соберите вещи с соседями или выберите другой вариант."];
+    return ["yes","Бесплатно приедут и заберут. Вещи передают на социальные площадки, где у них появятся новые владельцы."];
+  }
+},
+{
+  id:"ekotochki", name:"«Экоточки Москвы»", kind:"Городская сеть пунктов приёма",
+  where:"Более 800 точек у домов, в парках и торговых центрах. Карта на recycle.mos.ru: выберите тип вещи и ближайшую точку.",
+  url:"https://recycle.mos.ru/", urlLabel:"recycle.mos.ru",
+  accept:["Одежда и текстиль: хорошее — на благотворительность, остальное — в переработку","Книги — в части точек","Игрушки — в контейнерах «Сдать вещи просто»"],
+  decline:["Правила зависят от оператора конкретного контейнера"],
+  check(q){
+    if (q.cond === "ruined") return ["no","Грязные вещи в контейнеры не кладите."];
+    if (q.cat === "books") return ["maybe","Книги принимают в части экоточек: выберите «Книги» на карте."];
+    if (q.cat === "toys") return ["maybe","Игрушки принимают в контейнерах «Сдать вещи просто», ищите их на карте."];
+    if (q.sub === "underwear" || q.sub === "shoes") return ["maybe","Зависит от оператора контейнера, смотрите правила точки на карте."];
+    return ["yes","Подойдёт контейнер для одежды: хорошие вещи уйдут на благотворительность, непригодные — в переработку."];
+  }
+},
+{
+  id:"podari", name:"«Коробка храбрости» (фонд «Подари жизнь»)", kind:"Благотворительный фонд",
+  where:"Офис фонда. Адрес и то, идёт ли сбор сейчас, смотрите на сайте фонда.",
+  url:"https://podari-zhizn.ru/", urlLabel:"podari-zhizn.ru",
+  accept:["Только новые игрушки","До 15 см, из пластика, резины, каучука"],
+  decline:["Б/у игрушки","Плюшевые, деревянные, бьющиеся"],
+  check(q){
+    if (q.cat !== "toys") return ["no","Собирают только новые игрушки для детей на лечении."];
+    if (q.sub === "soft") return ["no","Плюшевые, деревянные и бьющиеся игрушки по требованию врачей не берут."];
+    if (q.cond !== "new") return ["no","По требованию врачей подходят только новые игрушки."];
+    return ["maybe","Нужны новые игрушки до 15 см из пластика или резины. Сборы идут не всегда: проверьте на сайте фонда."];
+  }
+},
+{
+  id:"shelters", name:"Приюты для животных", kind:"Приюты Москвы и области",
+  where:"У каждого приюта свой список нужд. Позвоните заранее и спросите, что им нужно.",
+  url:null, urlLabel:"",
+  accept:["Старые одеяла, куртки, ветошь — на подстилки","Мягкие игрушки — для собак"],
+  decline:["Нужды у приютов разные: без звонка не везите"],
+  check(q){
+    if (q.cond === "ruined") return ["no","Даже приютам нужны чистые вещи."];
+    if (q.cat === "toys" && q.sub === "soft") return ["maybe","Многие приюты берут мягкие игрушки в любом состоянии, с ними играют собаки. Сначала позвоните."];
+    if (q.cat === "clothes" && (q.sub === "textile" || q.sub === "outer")) return ["maybe","Старые одеяла, куртки и ткань идут на подстилки и утепление вольеров. Сначала уточните в приюте."];
+    return ["no","Приюту для животных это вряд ли пригодится."];
+  }
+},
+{
+  id:"avito", name:"«Авито» и чаты соседей", kind:"Отдать человеку",
+  where:"Объявление с ценой 0 ₽, чат дома или района, знакомые. На «Авито» также есть карта пунктов, куда сдать вещи на благотворительность.",
+  url:"https://www.avito.ru/avito-care/donate-things", urlLabel:"avito.ru",
+  accept:["Любые пригодные вещи с честным описанием"],
+  decline:["Грязное, испорченное, б/у бельё"],
+  check(q){
+    if (q.cond === "ruined") return ["no","Испорченные вещи не стоит отдавать даже бесплатно."];
+    if (q.sub === "underwear" && q.cond !== "new") return ["no","Б/у бельё не стоит отдавать даже бесплатно."];
+    if (q.cond === "worn") return ["maybe","Можно отдать бесплатно на дачу или для творчества. Честно опишите состояние."];
+    if (q.cond === "fixable") return ["yes","Отдайте бесплатно и честно опишите дефект: кто-то с радостью починит сам."];
+    return ["yes","Выложите объявление с ценой 0 ₽ или напишите в чат дома. Вещь попадёт к конкретному человеку."];
+  }
+},
+{
+  id:"libraries", name:"Районные библиотеки", kind:"Учреждения культуры",
+  where:"Ближайшая библиотека вашего района. Позвоните заранее.",
+  url:null, urlLabel:"",
+  accept:["Книги, которых нет в фонде библиотеки"],
+  decline:["Ветхие и грязные книги","Издания, которые уже есть в фонде"],
+  check(q){
+    if (q.cat !== "books") return ["no","Библиотеки принимают только книги."];
+    if (q.sub === "magazines") return ["no","Журналы библиотеки в дар обычно не берут."];
+    if (!goodish(q.cond)) return ["no","Рваные, грязные и ветхие книги не берут."];
+    return ["maybe","Берут только то, чего нет в фонде. Позвоните и спросите, нужна ли им эта книга."];
+  }
+}
+];
+
+/* ---------- Главная рекомендация ---------- */
+const OUT = {
+  fund:    {code:"БЛГ", title:"Передать на благотворительность"},
+  repair:  {code:"РМТ", title:"Отремонтировать"},
+  give:    {code:"ДАР", title:"Отдать человеку"},
+  recycle: {code:"ПРР", title:"Сдать на переработку"},
+  trash:   {code:"СТП", title:"Не отдавать в таком виде"}
+};
+
+function decide(q){
+  const c = q.cond, cat = q.cat, s = q.sub;
+  if (c === "ruined"){
+    if (cat === "clothes") return {k:"trash", text:"Грязные и пахнущие вещи не берёт ни одна организация из базы: фондам приходится выбрасывать их за свой счёт. Постирайте и пройдите анкету снова, ведь чистую одежду берут в переработку даже с дырками. Если не отстирывается — в обычный мусор."};
+    if (cat === "books") return {k:"trash", text:"Книги с плесенью и сильным запахом портят остальные в контейнере. Такие лучше выбросить."};
+    return {k:"trash", text:"Отмойте или постирайте игрушку, если получится, и пройдите анкету снова. Если нет — выбросите: испорченные игрушки никто не примет."};
+  }
+  if (s === "underwear" && c !== "new") return {k:"trash", text:"Б/у бельё, носки и колготки не берут ни фонды, ни контейнеры из нашей базы. Пустите на тряпки для уборки или выбросьте. Новое бельё с биркой примет «Второе дыхание»."};
+  if (c === "fixable"){
+    if (cat === "clothes" && s === "shoes") return {k:"repair", text:"Отнесите в ремонт обуви: подклеят подошву, поставят набойки. Сломанную обувь фонды не берут, а целую пару с радостью примут."};
+    if (cat === "clothes") return {k:"repair", text:"Замените молнию или пуговицу в ателье — так вещь пройдёт по правилам большинства фондов. Если чинить не хочется, чистую одежду с дефектом возьмут в переработку."};
+    if (cat === "books") return {k:"fund", text:"Подклейте корешок или обложку, если можете. Но и потрёпанную книгу примет Re:Books: хорошие уедут в сельские библиотеки, остальные — в макулатуру."};
+    return {k:"repair", text:"Соберите недостающие детали, замените батарейки, зашейте шов. Конструкторы и пазлы фонды берут только в полном комплекте."};
+  }
+  if (c === "worn"){
+    if (cat === "clothes" && s === "shoes") return {k:"trash", text:"Сломанную и сильно изношенную обувь не берут ни фонды, ни контейнеры из базы. Если её можно починить, отнесите в ремонт и пройдите анкету снова."};
+    if (cat === "clothes" && s === "outer") return {k:"recycle", text:"Чистые изношенные куртки примут контейнеры для одежды. Вещи с наполнителем переработать сложно, поэтому приют для животных будет им рад как подстилкам."};
+    if (cat === "clothes") return {k:"recycle", text:"Чистую изношенную одежду и текстиль берут в переработку: из них делают ветошь и регенерированное волокно. Главное — постирать."};
+    if (cat === "books") return {k:"recycle", text:"Потрёпанные книги примет Re:Books: что можно читать, уедет в библиотеки, остальное — в макулатуру."};
+    if (s === "soft") return {k:"give", title:"Отдать в приют для животных", text:"Изношенные мягкие игрушки фонды не берут, а многим приютам они нужны: с ними играют собаки. Сначала позвоните."};
+    return {k:"give", text:"Изношенные игрушки из базы никто не принимает. Предложите их бесплатно для дачи или песочницы, а если желающих не найдётся — выбросьте."};
+  }
+  if (cat === "books" && s === "magazines") return {k:"recycle", text:"Свежие журналы можно отдать даром, остальные — в макулатуру. Если вместе с книгами набралось 4+ больших сумки, городской вывоз mos.ru заберёт и журналы."};
+  if (cat === "books" && s === "textbooks") return {k:"give", text:"Актуальные учебники нужнее всего школьникам и студентам: отдайте через «Авито» или чат района. Устаревшие издания предложите Re:Books."};
+  if (cat === "toys" && s === "electronic") return {k:"give", text:"Игрушек на батарейках нет в списках фондов из базы. Проверьте, что игрушка работает, выньте батарейки и отдайте через «Авито» или знакомым."};
+  if (cat === "toys" && c === "new" && s !== "soft") return {k:"fund", text:"Новые игрушки особенно нужны детям на лечении: их собирают в «коробки храбрости». Подойдут и проекты для семей ниже."};
+  return {k:"fund", text:"Вещь в хорошем состоянии — то, что нужно фондам. Выберите организацию ниже: у каждой свои правила, и мы проверили их за вас."};
+}
+
+const PREP = {
+  clothes:["Постирайте и высушите","Проверьте карманы","Сложите в пакет и плотно завяжите","Свяжите шнурки, чтобы пара не потерялась","Гладить и сортировать не нужно"],
+  books:["Протрите пыль, достаньте закладки и записки","Несколько книг положите в сумку или завязанный пакет, чтобы они не испортились при падении в контейнер"],
+  toys:["Отмойте или постирайте","Соберите все детали набора и проверьте комплект","Выньте батарейки"]
+};
+
+/* ---------- Состояние ---------- */
+const state = {cat:"toys", sub:"soft", cond:"good", amount:"few"};
+
+function chip(group, item, checked, extra){
+  const id = group + "-" + item.id;
+  const small = item.hint ? '<small>' + item.hint + '</small>' : '';
+  return '<label class="chip" for="' + id + '"><input type="radio" id="' + id + '" name="' + group + '" value="' + item.id + '"' + (checked ? ' checked' : '') + '><span>' + (item.hint ? '<b>' + item.label + '</b>' : item.label) + small + '</span></label>';
+}
+function renderGroup(elId, group, items, current){
+  document.getElementById(elId).innerHTML = items.map(i => chip(group, i, i.id === current)).join("");
+}
+function renderForm(){
+  renderGroup("cat", "cat", CATS, state.cat);
+  if (!SUBS[state.cat].some(s => s.id === state.sub)) state.sub = SUBS[state.cat][0].id;
+  renderGroup("sub", "sub", SUBS[state.cat], state.sub);
+  renderGroup("cond", "cond", CONDS, state.cond);
+  renderGroup("amount", "amount", AMOUNTS, state.amount);
+}
+
+const PILL = {yes:"Примут", maybe:"Уточните", no:"Не примут"};
+function esc(s){return String(s).replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+
+function orgCard(o, res){
+  const [st, note] = res;
+  const link = o.url ? '<a class="src" href="' + o.url + '" target="_blank" rel="noopener">Правила на ' + esc(o.urlLabel) + ' ↗</a>' : '';
+  return '<article class="org ' + st + '"><header><div><h3>' + esc(o.name) + '</h3><div class="kind">' + esc(o.kind) + '</div></div><span class="pill ' + st + '">' + PILL[st] + '</span></header>' +
+    '<p>' + esc(note) + '</p>' + (st !== "no" ? '<p class="where">' + esc(o.where) + '</p>' + link : '') + '</article>';
+}
+
+function update(animate){
+  const q = state;
+  const results = ORGS.map(o => ({o, r:o.check(q)}));
+  const order = {yes:0, maybe:1, no:2};
+  results.sort((a,b) => order[a.r[0]] - order[b.r[0]]);
+  const ok = results.filter(x => x.r[0] !== "no");
+  const no = results.filter(x => x.r[0] === "no");
+  const nYes = results.filter(x => x.r[0] === "yes").length;
+  const nMaybe = results.filter(x => x.r[0] === "maybe").length;
+
+  const d = decide(q);
+  const out = OUT[d.k];
+  const cat = CATS.find(c => c.id === q.cat);
+  const cond = CONDS.find(c => c.id === q.cond);
+  document.getElementById("v-code").textContent = "МСК · " + cat.code + " · " + cond.code + " → " + out.code;
+  document.getElementById("v-title").textContent = d.title || out.title;
+  document.getElementById("v-text").textContent = d.text;
+  document.getElementById("v-tally").innerHTML = '<span><b>' + nYes + '</b> примут</span><span><b>' + nMaybe + '</b> уточнить</span><span><b>' + no.length + '</b> не примут</span>';
+
+  const tag = document.getElementById("verdict");
+  if (animate){ tag.classList.remove("stamp"); void tag.offsetWidth; tag.classList.add("stamp"); }
+
+  document.getElementById("prep-list").innerHTML = PREP[q.cat].map(p => '<li>' + esc(p) + '</li>').join("");
+
+  const extra = document.getElementById("extra");
+  const big = q.amount === "lots" && d.k !== "trash";
+  if (big){
+    extra.hidden = false;
+    extra.innerHTML = '<h3>Много вещей?</h3><p class="note">Закажите бесплатный вывоз: городской сервис mos.ru забирает одежду и книги от 4 больших сумок, «Добрые вещи» вывозят одежду и игрушки, Re:Books — книги.</p>';
+  } else { extra.hidden = true; extra.innerHTML = ""; }
+
+  document.getElementById("orgs-ok").innerHTML = ok.length ? ok.map(x => orgCard(x.o, x.r)).join("") : '<p class="empty">Под эту вещь не подошла ни одна организация из базы. Смотрите совет на ярлыке выше.</p>';
+  document.getElementById("orgs-no").innerHTML = no.map(x => orgCard(x.o, x.r)).join("");
+  document.getElementById("rej-sum").textContent = "Куда не стоит нести и почему (" + no.length + ")";
+}
+
+document.getElementById("quiz").addEventListener("change", e => {
+  const t = e.target;
+  if (!t.name || !(t.name in state)) return;
+  state[t.name] = t.value;
+  if (t.name === "cat") renderForm();
+  update(true);
+});
+document.getElementById("quiz").addEventListener("submit", e => e.preventDefault());
+
+/* ---------- Справочник ---------- */
+document.getElementById("dir").innerHTML = ORGS.map(o =>
+  '<article><div><h3>' + esc(o.name) + '</h3><div class="kind">' + esc(o.kind) + '</div></div>' +
+  '<div class="cols"><div><span class="mono ok">Принимают</span><ul>' + o.accept.map(a => '<li>' + esc(a) + '</li>').join("") + '</ul></div>' +
+  '<div><span class="mono ko">Не принимают</span><ul>' + o.decline.map(a => '<li>' + esc(a) + '</li>').join("") + '</ul></div></div>' +
+  '<p class="where" style="margin:0;font-size:14px;color:var(--muted)">' + esc(o.where) + '</p>' +
+  (o.url ? '<a class="src" style="font-size:14px;font-weight:500" href="' + o.url + '" target="_blank" rel="noopener">' + esc(o.urlLabel) + ' ↗</a>' : '') +
+  '</article>').join("");
+
+/* ---------- Команда ---------- */
+const TEAM = [
+  ["Яра","Руководитель проекта"],
+  ["Арина","Партнёрства с фондами"],
+  ["Залина","База организаций и правил"],
+  ["Варвара","Исследование пользователей"],
+  ["Надим","UX, дизайн и тексты"],
+  ["Гоша","Разработка: логика рекомендаций"],
+  ["Стас","Разработка: данные и публикация"],
+  ["Рома","Коммуникации и отчётность"]
+];
+document.getElementById("team").innerHTML = TEAM.map(t => '<li><b>' + t[0] + '</b><span>' + t[1] + '</span></li>').join("");
+
+renderForm();
+update(false);
+})();
+</script>
+</body>
+</html>
